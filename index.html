@@ -37,8 +37,12 @@
 
         // === Telegram User ===
         let tgUser = null;
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id) {
             tgUser = Telegram.WebApp.initDataUnsafe.user;
+        }
+        if (!tgUser || !tgUser.id) {
+            // Для теста в браузере — сгенерировать временный id
+            tgUser = { id: 'test_' + Math.floor(Math.random() * 1000000), first_name: 'Гость' };
         }
         // Получаем имя из Telegram, если есть
         let telegramName = '';
