@@ -33,7 +33,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         // === Настройки ===
-        const API_URL = "https://tictaktoe-back.onrender.com"; // Django API
+        const API_URL = "https://tictaktoe-back.onrender.com/api"; // Django API
 
         // === Telegram User ===
         let tgUser = null;
@@ -114,13 +114,17 @@
         }
 
         // === API ===
-        async function apiCreateGame() {
-            const res = await fetch(`${API_URL}/api/new_game`, { method: 'POST' });
+        async function apiCreateGame(userId) {
+            const res = await fetch(`${API_URL}/new_game`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
             if (!res.ok) throw new Error('Ошибка создания игры');
             return await res.json();
         }
         async function apiMove(gameId, row, col, symbol) {
-            const res = await fetch(`${API_URL}/api/move`, {
+            const res = await fetch(`${API_URL}/move`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ game_id: gameId, row, col, symbol })
@@ -131,8 +135,8 @@
             }
             return await res.json();
         }
-        async function apiGetState(gameId) {
-            const res = await fetch(`${API_URL}/api/state/${gameId}`);
+        async function apiGetState(gameId, userId) {
+            const res = await fetch(`${API_URL}/state/${gameId}?user_id=${userId}`);
             if (!res.ok) {
                 if (res.status === 404) {
                     resetToStart("Игра не найдена или уже завершена. Создайте новую игру!");
@@ -142,12 +146,12 @@
             return await res.json();
         }
         async function apiCheckWinner(gameId) {
-            const res = await fetch(`${API_URL}/api/check_winner/${gameId}`);
+            const res = await fetch(`${API_URL}/check_winner/${gameId}`);
             if (!res.ok) throw new Error('Ошибка проверки победителя');
             return await res.json();
         }
         async function apiReady(gameId, symbol) {
-            const res = await fetch(`${API_URL}/api/ready`, {
+            const res = await fetch(`${API_URL}/ready`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ game_id: gameId, symbol })
@@ -158,11 +162,11 @@
             }
             return await res.json();
         }
-        async function apiJoin(gameId, symbol) {
-            const res = await fetch(`${API_URL}/api/join`, {
+        async function apiJoin(gameId, symbol, userId) {
+            const res = await fetch(`${API_URL}/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ game_id: gameId, symbol })
+                body: JSON.stringify({ game_id: gameId, symbol, user_id: userId })
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -271,7 +275,7 @@
             polling = setInterval(async () => {
                 if (!gameId) return;
                 try {
-                    const data = await apiGetState(gameId);
+                    const data = await apiGetState(gameId, tgUser.id);
                     updateStateFromApi(data);
                 } catch {}
             }, 1200);
@@ -283,9 +287,9 @@
         // === UI: Создать/Подключиться ===
         createGameBtn.onclick = async () => {
             try {
-                const data = await apiCreateGame();
+                const data = await apiCreateGame(tgUser.id);
                 gameId = data.game_id;
-                playerSymbol = 'X';
+                playerSymbol = data.player_symbol;
                 boardState = data.board;
                 current = data.current;
                 winner = data.winner;
@@ -294,7 +298,7 @@
                 gameControls.style.display = 'none';
                 gameIdShow.style.display = 'block';
                 gameIdShow.textContent = `ID вашей игры: ${gameId}`;
-                status.textContent = 'Ожидание второго игрока (он должен подключиться по ID)';
+                status.textContent = 'Ожидание соперника (он должен подключиться по ID)';
                 renderBoard();
                 startPolling();
             } catch (e) {
@@ -305,10 +309,10 @@
             const id = gameIdInput.value.trim();
             if (!id) return alert('Введите ID игры');
             try {
-                await apiJoin(id, 'O');
-                const data = await apiGetState(id);
+                await apiJoin(id, 'O', tgUser.id);
+                const data = await apiGetState(id, tgUser.id);
                 gameId = id;
-                playerSymbol = 'O';
+                playerSymbol = data.player_symbol;
                 boardState = data.board;
                 current = data.current;
                 winner = data.winner;
