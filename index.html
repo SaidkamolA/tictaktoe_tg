@@ -127,11 +127,11 @@
             if (!res.ok) throw new Error('Ошибка создания игры');
             return await res.json();
         }
-        async function apiMove(gameId, row, col, symbol) {
+        async function apiMove(gameId, row, col, symbol, userId) {
             const res = await fetch(`${API_URL}/move`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ game_id: gameId, row, col, symbol })
+                body: JSON.stringify({ game_id: gameId, row, col, symbol, user_id: userId })
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -182,7 +182,7 @@
         // === Игровая логика ===
         async function handleMove(row, col) {
             try {
-                const data = await apiMove(gameId, row, col, playerSymbol);
+                const data = await apiMove(gameId, row, col, playerSymbol, tgUser.id);
                 updateStateFromApi(data);
             } catch (e) {
                 alert(e.message);
@@ -190,6 +190,7 @@
         }
 
         function updateStateFromApi(data) {
+            playerSymbol = data.player_symbol;
             boardState = data.board;
             current = data.current;
             winner = data.winner;
@@ -199,6 +200,7 @@
             ready_X = data.ready_X ?? false;
             ready_O = data.ready_O ?? false;
             gameOver = !!winner;
+            winnerLine = data.winner_line || null;
             renderBoard();
             renderScoreboard();
             let connected_X = data.connected_X ?? true;
@@ -253,23 +255,6 @@
                 clearMoveTimer();
             }
             prevMoveTurn = current;
-            winnerLine = data.winner_line || null;
-
-            // Показываем баннеры только один раз за окончание партии
-            if (gameOver && !prevGameOver) {
-                if (winner === 'draw') {
-                    showDrawBanner();
-                } else if (winner) {
-                    showWinnerBanner(winner);
-                    showConfetti();
-                }
-            }
-            // Если winner стал null и поле пустое — новая партия!
-            if (!winner && prevGameOver) {
-                readyBtn.style.display = 'none';
-                waitingReady = false;
-                status.textContent = `Ходит: ${current}${playerSymbol ? (current === playerSymbol ? ' (Ваш ход)' : ' (Ожидание соперника)') : ''}`;
-            }
             prevGameOver = gameOver;
         }
 
@@ -293,10 +278,8 @@
             try {
                 const data = await apiCreateGame(tgUser.id);
                 gameId = data.game_id;
-                playerSymbol = data.player_symbol;
-                boardState = data.board;
-                current = data.current;
-                winner = data.winner;
+                await apiJoin(gameId, data.player_symbol, tgUser.id); // Гарантируем регистрацию X
+                updateStateFromApi(data);
                 gameOver = false;
                 joined = true;
                 gameControls.style.display = 'none';
@@ -316,10 +299,8 @@
                 await apiJoin(id, 'O', tgUser.id);
                 const data = await apiGetState(id, tgUser.id);
                 gameId = id;
-                playerSymbol = data.player_symbol;
-                boardState = data.board;
-                current = data.current;
-                winner = data.winner;
+                // playerSymbol теперь берётся из updateStateFromApi
+                updateStateFromApi(data);
                 gameOver = !!winner;
                 joined = true;
                 gameControls.style.display = 'none';
