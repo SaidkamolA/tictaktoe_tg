@@ -33,7 +33,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         // === Настройки ===
-        const API_URL = "https://tictaktoe-back.onrender.com/api"; // Django API
+        const API_URL = "https://tictaktoe-back.onrender.com"; // Django API
 
         // === Telegram User ===
         let tgUser = null;
@@ -115,12 +115,12 @@
 
         // === API ===
         async function apiCreateGame() {
-            const res = await fetch(`${API_URL}/new_game`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/api/new_game`, { method: 'POST' });
             if (!res.ok) throw new Error('Ошибка создания игры');
             return await res.json();
         }
         async function apiMove(gameId, row, col, symbol) {
-            const res = await fetch(`${API_URL}/move`, {
+            const res = await fetch(`${API_URL}/api/move`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ game_id: gameId, row, col, symbol })
@@ -132,7 +132,7 @@
             return await res.json();
         }
         async function apiGetState(gameId) {
-            const res = await fetch(`${API_URL}/state/${gameId}`);
+            const res = await fetch(`${API_URL}/api/state/${gameId}`);
             if (!res.ok) {
                 if (res.status === 404) {
                     resetToStart("Игра не найдена или уже завершена. Создайте новую игру!");
@@ -142,12 +142,12 @@
             return await res.json();
         }
         async function apiCheckWinner(gameId) {
-            const res = await fetch(`${API_URL}/check_winner/${gameId}`);
+            const res = await fetch(`${API_URL}/api/check_winner/${gameId}`);
             if (!res.ok) throw new Error('Ошибка проверки победителя');
             return await res.json();
         }
         async function apiReady(gameId, symbol) {
-            const res = await fetch(`${API_URL}/ready`, {
+            const res = await fetch(`${API_URL}/api/ready`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ game_id: gameId, symbol })
@@ -159,7 +159,7 @@
             return await res.json();
         }
         async function apiJoin(gameId, symbol) {
-            const res = await fetch(`${API_URL}/join`, {
+            const res = await fetch(`${API_URL}/api/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ game_id: gameId, symbol })
