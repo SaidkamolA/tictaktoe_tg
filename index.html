@@ -135,6 +135,7 @@
                         current === playerSymbol &&
                         !boardState[row][col]) {
                         cell.addEventListener('click', () => handleMove(row, col));
+                        cell.addEventListener('touchend', (e) => { e.preventDefault(); handleMove(row, col); }, {passive: false});
                     }
                     board.appendChild(cell);
                 }
