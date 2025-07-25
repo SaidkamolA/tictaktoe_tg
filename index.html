@@ -64,6 +64,7 @@
             // Для теста в браузере — сгенерировать временный id
             tgUser = { id: 'test_' + Math.floor(Math.random() * 1000000), first_name: 'Гость' };
         }
+        console.log('tgUser:', tgUser);
         // Получаем имя из Telegram, если есть
         let telegramName = '';
         if (tgUser) {
@@ -134,8 +135,20 @@
                     if (!gameOver && playerSymbol &&
                         current === playerSymbol &&
                         !boardState[row][col]) {
+                        // Для ПК
                         cell.addEventListener('click', () => handleMove(row, col));
-                        cell.addEventListener('touchend', (e) => { e.preventDefault(); handleMove(row, col); }, {passive: false});
+                        // Для мобильных: только один из touchstart/touchend должен сработать
+                        let tapped = false;
+                        cell.addEventListener('touchstart', (e) => {
+                            tapped = true;
+                            e.preventDefault();
+                        }, {passive: false});
+                        cell.addEventListener('touchend', (e) => {
+                            if (tapped) {
+                                tapped = false;
+                                handleMove(row, col);
+                            }
+                        }, {passive: false});
                     }
                     board.appendChild(cell);
                 }
@@ -234,6 +247,7 @@
             try {
                 // Перед каждым ходом определяем актуальный символ
                 const symbol = getPlayerSymbolForMove();
+                console.log('handleMove', {user_id: tgUser.id, symbol, gameId, row, col});
                 const data = await apiMove(gameId, row, col, symbol, tgUser.id);
                 updateStateFromApi(data);
             } catch (e) {
