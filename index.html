@@ -527,6 +527,547 @@
                     moveTimerValue--;
                     moveTimerDiv.textContent = `Ваш ход: осталось ${moveTimerValue} сек.`;
                     if (moveTimerValue <= 0) {
+                        clearMoveTimer<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Крестики-нолики</h1>
+    <div id="game-controls">
+        <button id="create-game">Создать игру</button>
+        <button id="show-join">Присоединиться к игре</button>
+    </div>
+    <div id="join-block" style="display:none;">
+      <h2 style="margin-bottom:12px;font-size:1.15rem;font-weight:600;color:#6366f1;">Введите ID игры</h2>
+      <input id="join-game-id-input" type="text" maxlength="36" placeholder="ID игры">
+      <button class="join-btn" id="join-continue">Продолжить</button>
+      <button class="back-btn" id="join-back">Назад</button>
+    </div>
+    <div id="game-id-show" style="display:none;"></div>
+    <div id="status">Создайте или подключитесь к игре</div>
+    <div id="players-row" class="players-row" style="display:none;">
+      <div class="player player-x" id="player-x-name">Игрок 1</div>
+      <div class="scoreboard-center" id="scoreboard-center">0 : 0</div>
+      <div class="player player-o" id="player-o-name">Игрок 2</div>
+    </div>
+    <div id="board" style="display:none;"></div>
+    <div id="move-timer" style="display:none;"></div>
+    <button id="restart" style="display:none;">Сыграть ещё</button>
+    <button id="ready-btn" style="display:none;background:linear-gradient(90deg,#22d3ee,#a78bfa);color:#fff;font-weight:600;padding:10px 26px;border-radius:8px;border:none;font-size:1.08rem;box-shadow:0 2px 8px #a5b4fc33;cursor:pointer;transition:background 0.2s,box-shadow 0.2s,transform 0.1s;margin:4px;">Готов к новой игре</button>
+    <button id="exit-game-btn" style="display:none;margin:18px auto 0 auto;max-width:220px;width:100%;padding:14px 0;font-size:1.1rem;font-weight:600;border-radius:12px;border:none;background:linear-gradient(90deg,#f43f5e 0%,#f59e42 100%);color:#fff;box-shadow:0 2px 8px #fbbf2444;cursor:pointer;transition:background 0.2s,box-shadow 0.2s,transform 0.1s;">Выйти из игры</button>
+    <div id="exit-modal" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.22);align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 4px 32px #6366f122;display:flex;flex-direction:column;align-items:center;">
+        <h2 style="margin-bottom:18px;font-size:1.15rem;">Выйти из игры?</h2>
+        <div style="display:flex;gap:18px;">
+          <button id="exit-confirm-btn" style="background:linear-gradient(90deg,#f43f5e,#f59e42);color:#fff;font-weight:600;padding:10px 26px;border-radius:8px;border:none;font-size:1.08rem;box-shadow:0 2px 8px #fbbf2444;cursor:pointer;">Выйти</button>
+          <button id="exit-cancel-btn" style="background:#e0e7ef;color:#6366f1;font-weight:600;padding:10px 26px;border-radius:8px;border:none;font-size:1.08rem;box-shadow:0 2px 8px #a5b4fc33;cursor:pointer;">Отмена</button>
+        </div>
+      </div>
+    </div>
+    <canvas class="confetti" id="confetti-canvas" style="display:none;"></canvas>
+    <div id="winner-banner" style="display:none;"></div>
+    <div id="draw-banner" style="display:none;"></div>
+    <div id="name-modal" style="display:none;position:fixed;z-index:2000;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 4px 32px #6366f122;display:flex;flex-direction:column;align-items:center;">
+        <h2 style="margin-bottom:18px;font-size:1.3rem;">Введите ваше имя</h2>
+        <input id="player-name-input" type="text" maxlength="16" style="padding:10px 18px;font-size:1.1rem;border-radius:8px;border:1.5px solid #a5b4fc;margin-bottom:16px;width:180px;outline:none;">
+        <button id="save-name-btn" style="background:linear-gradient(90deg,#6366f1,#06b6d4);color:#fff;font-weight:600;padding:10px 26px;border-radius:8px;border:none;font-size:1.08rem;box-shadow:0 2px 8px #a5b4fc33;cursor:pointer;">Сохранить</button>
+      </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // === Настройки ===
+        const API_URL = "https://tictaktoe-back.onrender.com/api"; // Django API
+
+        // === Telegram User ===
+        let tgUser = null;
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id) {
+            tgUser = Telegram.WebApp.initDataUnsafe.user;
+        }
+        if (!tgUser || !tgUser.id) {
+            // Для теста в браузере — сгенерировать временный id
+            tgUser = { id: 'test_' + Math.floor(Math.random() * 1000000), first_name: 'Гость' };
+        }
+        // Получаем имя из Telegram, если есть
+        let telegramName = '';
+        if (tgUser) {
+            telegramName = tgUser.first_name || tgUser.username || '';
+        }
+        let playerName = telegramName || localStorage.getItem('ttt_player_name') || '';
+
+        // === DOM ===
+        const board = document.getElementById('board');
+        const status = document.getElementById('status');
+        const restartBtn = document.getElementById('restart');
+        const createGameBtn = document.getElementById('create-game');
+        const gameIdShow = document.getElementById('game-id-show');
+        const gameControls = document.getElementById('game-controls');
+        const scoreboard = document.getElementById('scoreboard');
+        const readyBtn = document.getElementById('ready-btn');
+        const nameModal = document.getElementById('name-modal');
+        const playerNameInput = document.getElementById('player-name-input');
+        const saveNameBtn = document.getElementById('save-name-btn');
+        const showJoinBtn = document.getElementById('show-join');
+        const joinBlock = document.getElementById('join-block');
+        const joinGameIdInput = document.getElementById('join-game-id-input');
+        const joinContinueBtn = document.getElementById('join-continue');
+        const joinBackBtn = document.getElementById('join-back');
+        const playerXName = document.getElementById('player-x-name');
+        const playerOName = document.getElementById('player-o-name');
+        const scoreboardCenter = document.getElementById('scoreboard-center');
+        const moveTimerDiv = document.getElementById('move-timer');
+        const exitGameBtn = document.getElementById('exit-game-btn');
+        const exitModal = document.getElementById('exit-modal');
+        const exitConfirmBtn = document.getElementById('exit-confirm-btn');
+        const exitCancelBtn = document.getElementById('exit-cancel-btn');
+
+        // === State ===
+        let gameId = null;
+        let playerSymbol = null; // 'X' или 'O'
+        let boardState = [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null]
+        ];
+        let current = 'X';
+        let winner = null;
+        let polling = null;
+        let gameOver = false;
+        let joined = false;
+        let score_X = 0, score_O = 0, score_draw = 0;
+        let ready_X = false, ready_O = false;
+        let waitingReady = false;
+        let moveTimer = null;
+        let moveTimeout = 10; // секунд
+        let moveTimerValue = moveTimeout;
+        let prevMoveTurn = null;
+        let prevGameOver = false;
+        let winnerLine = null;
+        let preStartTimer = null;
+        let preStartValue = 3;
+        let lastWinner = null;
+
+        // === Board Render ===
+        function renderBoard() {
+            board.innerHTML = '';
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.setAttribute('data-symbol', boardState[row][col] || '');
+                    if (!gameOver && playerSymbol &&
+                        current === playerSymbol &&
+                        !boardState[row][col]) {
+                        cell.addEventListener('click', () => handleMove(row, col));
+                        cell.addEventListener('touchend', (e) => { e.preventDefault(); handleMove(row, col); }, {passive: false});
+                    }
+                    board.appendChild(cell);
+                }
+            }
+            if (winnerLine && winner) {
+                drawWinLine(winnerLine);
+            }
+        }
+        let originalRenderBoard = renderBoard;
+
+        function renderScoreboard() {
+            // Обновляем центральный счёт
+            scoreboardCenter.textContent = `${score_X} : ${score_O}`;
+            // Можно добавить имена, если появятся
+        }
+
+        function showGameUI(show) {
+            // show: true — показать игровую часть, false — скрыть
+            document.getElementById('players-row').style.display = show ? 'flex' : 'none';
+            document.getElementById('board').style.display = show ? 'grid' : 'none';
+            document.getElementById('move-timer').style.display = show ? 'block' : 'none';
+            exitGameBtn.style.display = show ? 'block' : 'none';
+        }
+
+        // === API ===
+        async function apiCreateGame(userId) {
+            const res = await fetch(`${API_URL}/new_game`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            if (!res.ok) throw new Error('Ошибка создания игры');
+            return await res.json();
+        }
+        async function apiMove(gameId, row, col, symbol, userId) {
+            const res = await fetch(`${API_URL}/move`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game_id: gameId, row, col, symbol, user_id: userId })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Ошибка хода');
+            }
+            return await res.json();
+        }
+        async function apiGetState(gameId, userId) {
+            const res = await fetch(`${API_URL}/state/${gameId}?user_id=${userId}`);
+            if (!res.ok) {
+                if (res.status === 404) {
+                    resetToStart("Игра не найдена или уже завершена. Создайте новую игру!");
+                }
+                throw new Error('Игра не найдена');
+            }
+            return await res.json();
+        }
+        async function apiCheckWinner(gameId) {
+            const res = await fetch(`${API_URL}/check_winner/${gameId}`);
+            if (!res.ok) throw new Error('Ошибка проверки победителя');
+            return await res.json();
+        }
+        async function apiReady(gameId, symbol) {
+            const res = await fetch(`${API_URL}/ready`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game_id: gameId, symbol })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Ошибка готовности');
+            }
+            return await res.json();
+        }
+        async function apiJoin(gameId, symbol, userId) {
+            const res = await fetch(`${API_URL}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game_id: gameId, symbol, user_id: userId })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Ошибка подключения');
+            }
+            return await res.json();
+        }
+
+        // === Игровая логика ===
+        function getPlayerSymbolForMove() {
+            // Определяем символ игрока по user_id и текущим данным игры
+            if (!tgUser || !tgUser.id) return playerSymbol;
+            if (window.player_X_id && tgUser.id == window.player_X_id) return 'X';
+            if (window.player_O_id && tgUser.id == window.player_O_id) return 'O';
+            return playerSymbol;
+        }
+        async function handleMove(row, col) {
+            try {
+                // Перед каждым ходом определяем актуальный символ
+                const symbol = getPlayerSymbolForMove();
+                const data = await apiMove(gameId, row, col, symbol, tgUser.id);
+                updateStateFromApi(data);
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        function updateStateFromApi(data) {
+            playerSymbol = data.player_symbol;
+            boardState = data.board;
+            current = data.current;
+            winner = data.winner;
+            score_X = data.score_X ?? score_X;
+            score_O = data.score_O ?? score_O;
+            score_draw = data.score_draw ?? score_draw;
+            ready_X = data.ready_X ?? false;
+            ready_O = data.ready_O ?? false;
+            gameOver = !!winner;
+            winnerLine = data.winner_line || null;
+            renderBoard();
+            renderScoreboard();
+            let connected_X = data.connected_X ?? true;
+            let connected_O = data.connected_O ?? false;
+            // Сохраняем id игроков для корректного определения символа
+            if (data.player_X_id) window.player_X_id = data.player_X_id;
+            if (data.player_O_id) window.player_O_id = data.player_O_id;
+            // Если оба игрока подключены и игра только начинается — запускаем 3-секундный отсчёт
+            if (connected_X && connected_O && !gameOver && boardState.flat().every(cell => cell === null) && !winner && current === 'X' && !waitingReady) {
+                if (!preStartTimer) {
+                    clearMoveTimer();
+                    renderBoard = () => {};
+                    startPreStartTimer();
+                }
+                return;
+            } else {
+                clearPreStartTimer();
+                renderBoard = originalRenderBoard;
+            }
+            // Корректный статус и таймер только если winner == null и есть пустые клетки
+            if (!gameOver && !winner && boardState.flat().some(cell => cell === null)) {
+                if (current === playerSymbol) {
+                    status.textContent = 'Ваш ход';
+                    if (prevMoveTurn !== current) {
+                        startMoveTimer();
+                    }
+                } else {
+                    status.textContent = 'Ожидание соперника...';
+                    clearMoveTimer();
+                }
+            } else if (winner === 'draw') {
+                status.textContent = 'Ничья!';
+                restartBtn.style.display = 'none';
+                readyBtn.style.display = 'inline-block';
+                waitingReady = true;
+            } else if (winner) {
+                status.textContent = `Победил: ${winner}`;
+                restartBtn.style.display = 'none';
+                readyBtn.style.display = 'inline-block';
+                waitingReady = true;
+            } else {
+                status.textContent = 'Ожидание соперника...';
+                clearMoveTimer();
+            }
+            if (waitingReady) {
+                if ((playerSymbol === 'X' && ready_X) || (playerSymbol === 'O' && ready_O)) {
+                    readyBtn.textContent = 'Ожидание соперника...';
+                    readyBtn.disabled = true;
+                } else {
+                    readyBtn.textContent = 'Готов к новой игре';
+                    readyBtn.disabled = false;
+                }
+            }
+            // Таймер запускаем только если winner == null и есть пустые клетки и это твой ход, и ход сменился
+            if (!gameOver && current === playerSymbol && !winner && boardState.flat().some(cell => cell === null)) {
+                if (prevMoveTurn !== current) {
+                    startMoveTimer();
+                }
+            } else {
+                clearMoveTimer();
+            }
+            prevMoveTurn = current;
+            prevGameOver = gameOver;
+            let prevWinner = lastWinner;
+            lastWinner = data.winner;
+            // Показываем анимацию выигрыша только если победитель появился сейчас
+            if (winner && winner !== 'draw' && prevWinner !== winner) {
+                showWinnerBanner(winner);
+                showConfetti();
+            }
+            if (winner === 'draw' && prevWinner !== 'draw') {
+                showDrawBanner();
+            }
+        }
+
+        // === Пуллинг состояния ===
+        function startPolling() {
+            if (polling) clearInterval(polling);
+            polling = setInterval(async () => {
+                if (!gameId) return;
+                try {
+                    const data = await apiGetState(gameId, tgUser.id);
+                    updateStateFromApi(data);
+                } catch {}
+            }, 1200);
+        }
+        function stopPolling() {
+            if (polling) clearInterval(polling);
+        }
+
+        // === UI: Создать/Подключиться ===
+        createGameBtn.onclick = async () => {
+            try {
+                const data = await apiCreateGame(tgUser.id);
+                gameId = data.game_id;
+                await apiJoin(gameId, data.player_symbol, tgUser.id); // Гарантируем регистрацию X
+                updateStateFromApi(data);
+                gameOver = false;
+                joined = true;
+                gameControls.style.display = 'none';
+                gameIdShow.style.display = 'block';
+                gameIdShow.textContent = `ID вашей игры: ${gameId}`;
+                status.textContent = 'Ожидание соперника (он должен подключиться по ID)';
+                renderBoard();
+                showGameUI(true);
+                startPolling();
+            } catch (e) {
+                alert(e.message);
+            }
+        };
+        showJoinBtn.onclick = () => {
+            gameControls.style.display = 'none';
+            joinBlock.style.display = 'flex';
+            joinGameIdInput.value = '';
+            joinGameIdInput.focus();
+        };
+        joinBackBtn.onclick = () => {
+            joinBlock.style.display = 'none';
+            gameControls.style.display = 'flex';
+        };
+        joinContinueBtn.onclick = async () => {
+            const id = joinGameIdInput.value.trim();
+            if (!id) return alert('Введите ID игры');
+            try {
+                await apiJoin(id, 'O', tgUser.id);
+                const data = await apiGetState(id, tgUser.id);
+                gameId = id;
+                updateStateFromApi(data);
+                gameOver = !!winner;
+                joined = true;
+                joinBlock.style.display = 'none';
+                gameIdShow.style.display = 'block';
+                gameIdShow.textContent = `Вы подключились к игре: ${gameId}`;
+                renderBoard();
+                showGameUI(true);
+                startPolling();
+            } catch (e) {
+                alert('Игра не найдена');
+            }
+        };
+
+        // === Рестарт ===
+        restartBtn.onclick = () => {
+            stopPolling();
+            gameId = null;
+            playerSymbol = null;
+            boardState = [
+                [null, null, null],
+                [null, null, null],
+                [null, null, null]
+            ];
+            current = 'X';
+            winner = null;
+            gameOver = false;
+            joined = false;
+            score_X = 0;
+            score_O = 0;
+            score_draw = 0;
+            ready_X = false;
+            ready_O = false;
+            waitingReady = false;
+            gameControls.style.display = 'flex';
+            gameIdShow.style.display = 'none';
+            status.textContent = 'Создайте или подключитесь к игре';
+            restartBtn.style.display = 'none';
+            readyBtn.style.display = 'none';
+            renderBoard();
+            renderScoreboard();
+            showGameUI(false);
+        };
+
+        readyBtn.onclick = async () => {
+            try {
+                const data = await apiReady(gameId, playerSymbol);
+                updateStateFromApi(data);
+            } catch (e) {
+                alert(e.message);
+            }
+        };
+
+        // === Инициализация ===
+        renderBoard();
+        renderScoreboard();
+        askNameIfNeeded();
+        showGameUI(false); // В начале скрываем игровую часть
+
+        function showConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            const confettiCount = 180;
+            const confetti = [];
+            for (let i = 0; i < confettiCount; i++) {
+                confetti.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * -canvas.height,
+                    r: 6 + Math.random() * 8,
+                    d: 8 + Math.random() * 8,
+                    color: `hsl(${Math.random()*360},90%,60%)`,
+                    tilt: Math.random() * 10 - 5,
+                    tiltAngle: 0,
+                    tiltAngleIncremental: (Math.random() * 0.07) + 0.05
+                });
+            }
+            let angle = 0;
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                angle += 0.01;
+                for (let i = 0; i < confetti.length; i++) {
+                    let c = confetti[i];
+                    c.y += (Math.cos(angle + c.d) + 2 + c.r/2) * 0.7;
+                    c.x += Math.sin(angle);
+                    c.tiltAngle += c.tiltAngleIncremental;
+                    c.tilt = Math.sin(c.tiltAngle) * 15;
+                    ctx.beginPath();
+                    ctx.lineWidth = c.r;
+                    ctx.strokeStyle = c.color;
+                    ctx.moveTo(c.x + c.tilt + c.r/3, c.y);
+                    ctx.lineTo(c.x + c.tilt, c.y + c.d);
+                    ctx.stroke();
+                }
+            }
+            let frame = 0;
+            function animate() {
+                draw();
+                frame++;
+                if (frame < 120) {
+                    requestAnimationFrame(animate);
+                } else {
+                    canvas.style.display = 'none';
+                }
+            }
+            animate();
+        }
+        function showWinnerBanner(winner) {
+            const banner = document.getElementById('winner-banner');
+            let winnerText = `Победил: ${winner} 🎉`;
+            if ((playerSymbol === winner) && (telegramName || playerName)) {
+                winnerText = `Победил: ${(telegramName || playerName)} (${winner}) 🎉`;
+            }
+            banner.textContent = winnerText;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 3500);
+        }
+        function showDrawBanner() {
+            const banner = document.getElementById('draw-banner');
+            banner.textContent = 'Ничья! 🤝';
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 3000);
+        }
+        function askNameIfNeeded() {
+            if (!playerName && !telegramName) {
+                nameModal.style.display = 'flex';
+            }
+        }
+        saveNameBtn.onclick = () => {
+            const val = playerNameInput.value.trim();
+            if (val.length < 2) {
+                playerNameInput.style.borderColor = '#f87171';
+                return;
+            }
+            playerName = val;
+            localStorage.setItem('ttt_player_name', playerName);
+            nameModal.style.display = 'none';
+        };
+        playerNameInput.oninput = () => {
+            playerNameInput.style.borderColor = '#a5b4fc';
+        };
+        window.addEventListener('DOMContentLoaded', () => {
+            if (playerName) playerNameInput.value = playerName;
+            askNameIfNeeded();
+        });
+
+        function startMoveTimer() {
+            clearMoveTimer();
+            moveTimerValue = moveTimeout;
+            moveTimerDiv.textContent = '';
+            if (!playerSymbol || !gameId || !current || !gameControls.style.display.includes('none')) return;
+            if (current === playerSymbol && !gameOver) {
+                moveTimerDiv.textContent = `Ваш ход: осталось ${moveTimerValue} сек.`;
+                moveTimer = setInterval(() => {
+                    moveTimerValue--;
+                    moveTimerDiv.textContent = `Ваш ход: осталось ${moveTimerValue} сек.`;
+                    if (moveTimerValue <= 0) {
                         clearMoveTimer();
                         loseByTimeout();
                     }
