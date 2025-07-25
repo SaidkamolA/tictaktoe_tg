@@ -133,8 +133,7 @@
                     cell.dataset.row = row;
                     cell.dataset.col = col;
                     if (!gameOver && playerSymbol && current === playerSymbol && !boardState[row][col] && !preStartTimer) {
-                        cell.addEventListener('click', handleCellClick);
-                        cell.addEventListener('touchstart', handleCellTouch, { passive: false });
+                        cell.addEventListener('pointerdown', handleCellPointerDown, { passive: false });
                     }
                     board.appendChild(cell);
                 }
@@ -144,16 +143,10 @@
             }
         }
 
-        function handleCellClick(e) {
-            const row = parseInt(e.target.dataset.row);
-            const col = parseInt(e.target.dataset.col);
-            handleMove(row, col);
-        }
-
-        function handleCellTouch(e) {
+        function handleCellPointerDown(e) {
             e.preventDefault();
-            const row = parseInt(e.target.dataset.row);
-            const col = parseInt(e.target.dataset.col);
+            const row = parseInt(e.currentTarget.dataset.row, 10);
+            const col = parseInt(e.currentTarget.dataset.col, 10);
             handleMove(row, col);
         }
 
