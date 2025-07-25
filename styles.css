@@ -219,6 +219,8 @@ h1 {
 }
 
 .cell {
+    min-width: 64px;
+    min-height: 64px;
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
@@ -232,12 +234,14 @@ h1 {
     transition: box-shadow 0.15s, transform 0.1s, background 0.15s;
     box-shadow: 0 4px 16px #a5b4fc33, 0 1px 0 #fff8;
     user-select: none;
+    -webkit-user-select: none;
     border: none;
     outline: none;
     position: relative;
     z-index: 1;
     overflow: hidden;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 .cell:hover {
     background: linear-gradient(135deg, #e0e7ff 80%, #f8fafc 100%);
@@ -438,5 +442,14 @@ h1 {
     .player {
         min-width: 60px;
         font-size: 1em;
+    }
+    .cell {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 2rem;
+    }
+    button, .main-btn, #exit-game-btn {
+        min-height: 48px;
+        font-size: 1.1rem;
     }
 }
